@@ -596,7 +596,7 @@ static int count_from_str(void)
 	if (proc_pid[1] == 1)
 	{
 		sprintf(pbuf, "%s\n", "page counting running!>>>>>>>>>>>>>>>>>>>");
-		sprintf(pbuf + strlen(pbuf), "%s %25s %25s %25s %25s\n", "task pid", "active_file_count", "active_ano_count", "inactive_file_count", "inactive_ano_count");
+		sprintf(pbuf + strlen(pbuf), "%s %25s %25s %25s %25s %25s\n", "task pid", "scanned pages", "active_file_count", "active_ano_count", "inactive_file_count", "inactive_ano_count");
 		file_write(outplogfile, f_offset, (char *)pbuf, strlen(pbuf));
 		memset((void *)pbuf, 0, 2048);
 	}
