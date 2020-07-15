@@ -235,7 +235,7 @@ struct file *outplogfile = NULL;
 struct file *outalogfile = NULL;
 
 char abuf[2048];
-char pbuf[2048];
+char pbuf[256];
 struct my_proc_stat procs[20];
 int proc_pid[20];
 // 开启扫描过程
@@ -376,7 +376,7 @@ static void file_sync(struct file *file)
 }
 */
 
-static void scan_add_tsk(struct task_struct *task, struct file *file, unsigned long long offset, unsigned char *buf)
+static void scan_add_tsk(struct task_struct *task, struct file *file, unsigned char *buf)
 {
 	//	printk("scan task %d,%s in scan_add_tsk()\n", task->pid, task->comm);
 	struct mm_struct *p_mm;
@@ -386,7 +386,7 @@ static void scan_add_tsk(struct task_struct *task, struct file *file, unsigned l
 	pte_t *pte;
 	unsigned long phys;
 	int i, j, k, l, m = 0;
-	int count = 25;
+	int count = 60;
 
 	p_mm = task->mm;
 	//    struct page *p;
@@ -418,7 +418,7 @@ static void scan_add_tsk(struct task_struct *task, struct file *file, unsigned l
 					//					printk("gesefudiao:addr %lx", phys);
 					if (m < count)
 					{
-						sprintf(buf + strlen(buf), "addr %lx\n", phys);
+						sprintf(buf + strlen(buf), "%10d%20lx\n", task->pid, phys);
 						m++;
 						continue;
 					}
@@ -426,15 +426,16 @@ static void scan_add_tsk(struct task_struct *task, struct file *file, unsigned l
 					if (file != NULL)
 					{
 						//printk("d\n");
-						file_write(file, offset, (char *)buf, strlen(buf));
-						memset(buf, 0, 2048);
+						file_write(file, a_offset, (char *)buf, strlen(buf));
+						memset((void *)buf, 0, 2048);
 						m = 0;
 					}
 				}
 			}
 		}
 	}
-	file_write(outplogfile, f_offset, (char *)buf, strlen(buf));
+	file_write(outplogfile, a_offset, (char *)buf, strlen(buf));
+	memset((void *)buf, 0, 2048);
 }
 
 static void count_pages_tsk(struct task_struct *task, struct proc_page_stat *page_stat, unsigned char *buf)
@@ -501,8 +502,7 @@ static void count_pages_tsk(struct task_struct *task, struct proc_page_stat *pag
 		}
 	}
 	//	printk("gesefudiao-488:%10d %25ld %25ld %25ld %25ld\n",task->pid,page_stat->active_file_pages,page_stat->active_ano_pages,page_stat->inactive_file_pages,page_stat->inactive_ano_pages);
-	sprintf(buf + strlen(buf), "%d %20ld %20ld %20ld %20ld %20ld\n", task->pid, page_stat->scanned_pages,page_stat->active_file_pages, page_stat->active_ano_pages, page_stat->inactive_file_pages, page_stat->inactive_ano_pages);
-
+	sprintf(buf + strlen(buf), "%10d %20ld %20ld %20ld %20ld %20ld\n", task->pid, page_stat->scanned_pages, page_stat->active_file_pages, page_stat->active_ano_pages, page_stat->inactive_file_pages, page_stat->inactive_ano_pages);
 }
 
 /**
@@ -593,13 +593,13 @@ static int count_from_str(void)
 		}
 	}
 
-	if (proc_pid[1] == 1)
-	{
-		sprintf(pbuf, "%s\n", "page counting running!>>>>>>>>>>>>>>>>>>>");
-		sprintf(pbuf + strlen(pbuf), "%s %25s %25s %25s %25s %25s\n", "task pid", "scanned pages", "active_file_count", "active_ano_count", "inactive_file_count", "inactive_ano_count");
-		file_write(outplogfile, f_offset, (char *)pbuf, strlen(pbuf));
-		memset((void *)pbuf, 0, 2048);
-	}
+	// if (proc_pid[1] == 1)
+	// {
+	// 	sprintf(pbuf, "%s\n", "page counting running!>>>>>>>>>>>>>>>>>>>");
+	// 	sprintf(pbuf + strlen(pbuf), "%s %25s %25s %25s %25s %25s\n", "task pid", "scanned pages", "active_file_count", "active_ano_count", "inactive_file_count", "inactive_ano_count");
+	// 	file_write(outplogfile, f_offset, (char *)pbuf, strlen(pbuf));
+	// 	memset((void *)pbuf, 0, 256);
+	// }
 
 	for (i = 0; i < proc_count; i++)
 	{
@@ -611,16 +611,13 @@ static int count_from_str(void)
 		if (proc_pid[1] == 1)
 			count_pages_tsk(task, &procs[i].proc_page_count, pbuf);
 		if (proc_pid[2] == 1)
-			scan_add_tsk(task, outalogfile, a_offset, abuf);
+			scan_add_tsk(task, outalogfile, abuf);
 	}
 	if (proc_pid[1] == 1)
 	{
 		file_write(outplogfile, f_offset, (char *)pbuf, strlen(pbuf));
-		file_close(outplogfile);
-		memset((void *)pbuf, 0, 2048);
+		memset((void *)pbuf, 0, 256);
 	}
-	if (proc_pid[2] == 1)
-		file_close(outalogfile);
 
 	return 0;
 }
@@ -631,20 +628,20 @@ static void count_from_pid(int *count)
 	struct pid *p_pid;
 	int pid_n = -1;
 	int i, j = 0;
-	printk("gesefudiao:630 i am in count form pid\n");
-	if (proc_pid[1] == 1)
-	{
-		printk("gesefudiao:633-i am in");
-		sprintf(pbuf, "%s\n", "page counting running!>>>>>>>>>>>>>>>>>>>");
-		sprintf(pbuf + strlen(pbuf), "%s %20s %20s %20s %20s %20s\n", "task pid", "scanned pages", "active_file_count", "active_ano_count", "inactive_file_count", "inactive_ano_count");
-		file_write(outplogfile, f_offset, (char *)pbuf, strlen(pbuf));
-		memset((void *)pbuf, 0, 2048);
-	}
+	// printk("gesefudiao:630 i am in count form pid\n");
+	// if (proc_pid[1] == 1)
+	// {
+	// 	printk("gesefudiao:633-i am in");
+	// 	sprintf(pbuf, "%s\n", "page counting running!>>>>>>>>>>>>>>>>>>>");
+	// 	sprintf(pbuf + strlen(pbuf), "%s %20s %20s %20s %20s %20s\n", "task pid", "scanned pages", "active_file_count", "active_ano_count", "inactive_file_count", "inactive_ano_count");
+	// 	file_write(outplogfile, f_offset, (char *)pbuf, strlen(pbuf));
+	// 	memset((void *)pbuf, 0, 256);
+	// }
 	printk("gesefudiao:638%d\n", *count);
 	for (i = 3; i < *count; i++)
 	{
 		pid_n = proc_pid[i];
-		printk("gesefudiao:642 %d\n", pid_n);
+		//		printk("gesefudiao:642 %d\n", pid_n);
 		if (pid_n != 0 && pid_n != -1)
 		{
 			p_pid = find_get_pid(pid_n);
@@ -661,17 +658,23 @@ static void count_from_pid(int *count)
 		if (proc_pid[1] == 1)
 			count_pages_tsk(task, &procs[i].proc_page_count, pbuf);
 		if (proc_pid[2] == 1)
-			scan_add_tsk(task, outplogfile, a_offset, abuf);
+			scan_add_tsk(task, outplogfile, abuf);
 	}
 	if (proc_pid[1] == 1)
 	{
 		file_write(outplogfile, f_offset, (char *)pbuf, strlen(pbuf));
-		file_close(outplogfile);
-		memset((void *)pbuf, 0, 2048);
+		memset((void *)pbuf, 0, 256);
 	}
-	if (proc_pid[2] == 1)
-		file_close(outalogfile);
 }
+
+// static void get_utc_time(unsigned char *buf)
+// {
+// 	struct timex txc;
+// 	struct rtc_time tm;
+// 	do_gettimeofday(&(txc.time));
+// 	rtc_time_to_tm(txc.time.tv_sec, &tm);
+// 	printk("UTC time :%d-%d-%d %d:%d:%d /n", tm.tm_year + 1900, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+// }
 
 static int __init ksm_slab_init(void)
 {
@@ -2244,7 +2247,7 @@ static int ksm_scan_thread(void *nothing)
 
 	//	struct pid *p_pid;
 	int pid_count;
-	int i;
+	//	int i;
 
 	set_freezable();
 	set_user_nice(current, 5);
@@ -2260,12 +2263,12 @@ static int ksm_scan_thread(void *nothing)
 			//			printk("gesefudiao:outplogfile:%p", outplogfile);
 			pid_count = 0;
 			fillpid(&pid_count);
-			printk("gesefudiao:2254-%d\n", pid_count);
-			for (i = 0; i < pid_count; i++)
-			{
-				printk("gesefudiao:2258-%d\n", proc_pid[i]);
-			}
-			if (proc_pid[1] == 1)
+			//			printk("gesefudiao:2254-%d\n", pid_count);
+			// for (i = 0; i < pid_count; i++)
+			// {
+			// 	printk("gesefudiao:2258-%d\n", proc_pid[i]);
+			// }
+			if (proc_pid[1] == 1 && outplogfile == NULL)
 			{
 				//				printk("gesefudiao:1934:%p,%s", outplogfile, PROC_PLOGFILE);
 				outplogfile = file_open(PROC_PLOGFILE, O_RDWR | O_APPEND | O_CREAT, 0644);
@@ -2274,10 +2277,14 @@ static int ksm_scan_thread(void *nothing)
 				{
 					goto next_loop;
 				} //open log file end
+				sprintf(pbuf, "%s\n", "page counting running!>>>>>>>>>>>>>>>>>>>");
+				sprintf(pbuf + strlen(pbuf), "%10s %20s %20s %20s %20s %20s\n", "task pid", "scanned pages", "active_file_count", "active_ano_count", "inactive_file_count", "inactive_ano_count");
+				file_write(outplogfile, f_offset, (char *)pbuf, strlen(pbuf));
+				memset((void *)pbuf, 0, 512);
 			}
-			printk("gesefudiao-2270:%p", outplogfile);
+			//			printk("gesefudiao-2270:%p", outplogfile);
 
-			if (proc_pid[2] == 1)
+			if (proc_pid[2] == 1 && outalogfile == NULL)
 			{
 				outalogfile = file_open(PROC_ALOGFILE, O_RDWR | O_APPEND | O_CREAT, 0644);
 				memset(abuf, 0, 2048);
@@ -2285,13 +2292,17 @@ static int ksm_scan_thread(void *nothing)
 				{
 					goto next_loop;
 				} //open log file end
+				sprintf(abuf, "%s\n", "page address scanning!>>>>>>>>>>>>>>>>>>>");
+				sprintf(abuf + strlen(pbuf), "%10s %20s\n", "task pid", "page frame number");
+				file_write(outalogfile, a_offset, (char *)abuf, strlen(abuf));
+				memset((void *)abuf, 0, 2048);
 			}
-			printk("gesefudiao-2281:%p\n", outalogfile);
+			//			printk("gesefudiao-2281:%p\n", outalogfile);
 			//			sprintf(pbuf, "gesefudiao:1934:%p,%s", outplogfile, PROC_PLOGFILE);
 			//			printk("gesefudiao:1937:%p,%s", outplogfile, PROC_PLOGFILE);
 			//			file_write(outplogfile, f_offset, (char *)pbuf, strlen(pbuf));
-			printk("gesefudiao:2277\n");
-			printk("gesefudiao:2278:%d\n", proc_pid[0]);
+			//			printk("gesefudiao:2277\n");
+			//			printk("gesefudiao:2278:%d\n", proc_pid[0]);
 			if (proc_pid[0] == 0)
 				count_from_str();
 			else
@@ -2299,6 +2310,16 @@ static int ksm_scan_thread(void *nothing)
 		}
 	next_loop:
 		printk("gesefudiao : i am in 2160:next_loop\n");
+		if (outplogfile != NULL && ksm_run == KSM_RUN_UNMERGE)
+		{
+			file_close(outplogfile);
+			outplogfile = NULL;
+		}
+		if (outalogfile != NULL && ksm_run == KSM_RUN_UNMERGE)
+		{
+			file_close(outalogfile);
+			outalogfile = NULL;
+		}
 		mutex_lock(&ksm_thread_mutex);
 		wait_while_offlining();
 		if (ksmd_should_run())
@@ -2784,6 +2805,10 @@ static ssize_t run_store(struct kobject *kobj, struct kobj_attribute *attr,
 				ksm_run = KSM_RUN_STOP;
 				count = err;
 			}
+			scan_flags = 0;
+		}
+		else
+		{
 			scan_flags = 1;
 		}
 	}
